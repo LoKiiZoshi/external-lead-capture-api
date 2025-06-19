@@ -22,4 +22,9 @@ urlpatterns = [
    path('admin/', admin.site.urls),
     path('api/', include('receiver.urls')),
     path('inquiries/', receiver_list, name='receiver_list'),
+    
+    
+    
+    # this api is testing for pratice level in 
+    path('api/', include('reports.urls')),
 ]
