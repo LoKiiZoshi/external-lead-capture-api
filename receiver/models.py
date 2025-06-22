@@ -16,3 +16,6 @@ class Inquiry(models.Model):
 
     def __str__(self):
         return f"Inquiry by {self.lead.name}"
+    
+    
+

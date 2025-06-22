@@ -27,4 +27,6 @@ urlpatterns = [
     
     # this api is testing for pratice level in 
     path('api/', include('reports.urls')),
+    
+    
 ]
