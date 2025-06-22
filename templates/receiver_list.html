@@ -86,7 +86,7 @@
         <table class="table table-striped">
           <thead>
             <tr>
-              <th scope="col">#</th>
+              <th scope="col">ID</th>
               <th scope="col">Name</th>
               <th scope="col">Email</th>
               <th scope="col">Message</th>
@@ -96,7 +96,7 @@
           <tbody>
             {% for inquiry in inquiries %}
             <tr>
-              <td>{{ loop.index }}</td>
+              <td>{{ inquiry.lead.id }}</td>
               <td>{{ inquiry.lead.name }}</td>
               <td><span class="badge-email">{{ inquiry.lead.email }}</span></td>
               <td class="message-cell" title="{{ inquiry.message }}">
