@@ -1,7 +1,6 @@
 from django.contrib import admin
 from django.utils.html import format_html
 from django.urls import reverse
-from django.utils.safestring import mark_safe
 from .models import Category, Supplier, Product, StockEntry, StockMovement
 
 
@@ -11,10 +10,10 @@ class CategoryAdmin(admin.ModelAdmin):
     list_filter = ['status', 'created_at']
     search_fields = ['name', 'description']
     readonly_fields = ['created_at', 'updated_at']
-    
+
     def products_count(self, obj):
         count = obj.products.filter(status=Product.ProductStatus.ACTIVE).count()
-        url = reverse('admin:inventory_product_changelist') + f'?category__id__exact={obj.id}'
+        url = reverse('admin:stockmanagement_product_changelist') + f'?category__id__exact={obj.id}'
         return format_html('<a href="{}">{} products</a>', url, count)
     products_count.short_description = 'Active Products'
 
@@ -25,10 +24,10 @@ class SupplierAdmin(admin.ModelAdmin):
     list_filter = ['status', 'created_at']
     search_fields = ['name', 'contact_person', 'email']
     readonly_fields = ['created_at', 'updated_at']
-    
+
     def products_count(self, obj):
         count = obj.products.filter(status=Product.ProductStatus.ACTIVE).count()
-        url = reverse('admin:inventory_product_changelist') + f'?supplier__id__exact={obj.id}'
+        url = reverse('admin:stockmanagement_product_changelist') + f'?supplier__id__exact={obj.id}'
         return format_html('<a href="{}">{} products</a>', url, count)
     products_count.short_description = 'Active Products'
 
@@ -36,7 +35,7 @@ class SupplierAdmin(admin.ModelAdmin):
 class StockEntryInline(admin.TabularInline):
     model = StockEntry
     extra = 0
-    fields = ['batch_number', 'quantity', 'status', 'received_date', 'expiry_date', 'cost_per_unit']
+    fields = ['batch_number', 'quantity', 'status', 'expiry_date', 'cost_per_unit']
     readonly_fields = ['received_date']
 
 
@@ -50,7 +49,7 @@ class ProductAdmin(admin.ModelAdmin):
     search_fields = ['name', 'sku', 'description']
     readonly_fields = ['created_at', 'updated_at', 'current_stock', 'is_low_stock', 'is_overstocked']
     inlines = [StockEntryInline]
-    
+
     fieldsets = (
         ('Basic Information', {
             'fields': ('name', 'sku', 'category', 'supplier', 'description')
@@ -68,12 +67,12 @@ class ProductAdmin(admin.ModelAdmin):
             'fields': ('status', 'created_at', 'updated_at')
         })
     )
-    
+
     def current_stock_display(self, obj):
         stock = obj.current_stock
         return f"{stock} {obj.unit_of_measure}"
     current_stock_display.short_description = 'Current Stock'
-    
+
     def stock_status(self, obj):
         if obj.is_low_stock:
             return format_html('<span style="color: red;">⚠️ Low Stock</span>')
@@ -88,18 +87,22 @@ class ProductAdmin(admin.ModelAdmin):
 class StockEntryAdmin(admin.ModelAdmin):
     list_display = [
         'product', 'quantity_display', 'status', 'entry_type',
-        'expiry_status', 'received_date', 'total_cost'
+        'expiry_status', 'received_date', 'total_cost_display'
     ]
     list_filter = ['status', 'entry_type', 'received_date', 'expiry_date']
     search_fields = ['product__name', 'product__sku', 'batch_number', 'reference_number']
-    readonly_fields = ['created_at', 'updated_at', 'total_cost', 'is_expired', 'days_until_expiry']
-    
+
+    readonly_fields = [
+        'created_at', 'updated_at', 'total_cost_display',
+        'is_expired', 'days_until_expiry', 'received_date'
+    ]
+
     fieldsets = (
         ('Product Information', {
             'fields': ('product', 'batch_number', 'reference_number')
         }),
         ('Quantity & Pricing', {
-            'fields': ('quantity', 'cost_per_unit', 'total_cost')
+            'fields': ('quantity', 'cost_per_unit', 'total_cost_display')
         }),
         ('Entry Details', {
             'fields': ('entry_type', 'status', 'received_date', 'expiry_date')
@@ -111,11 +114,11 @@ class StockEntryAdmin(admin.ModelAdmin):
             'fields': ('notes', 'created_at', 'updated_at')
         })
     )
-    
+
     def quantity_display(self, obj):
         return f"{obj.quantity} {obj.product.unit_of_measure}"
     quantity_display.short_description = 'Quantity'
-    
+
     def expiry_status(self, obj):
         if obj.expiry_date:
             if obj.is_expired:
@@ -127,6 +130,13 @@ class StockEntryAdmin(admin.ModelAdmin):
         return '-'
     expiry_status.short_description = 'Expiry Status'
 
+    def total_cost_display(self, obj):
+        if obj.quantity is None or obj.cost_per_unit is None:
+            return "—"
+        total = obj.quantity * obj.cost_per_unit
+        return f"{total:.2f}"
+    total_cost_display.short_description = 'Total Cost'
+
 
 @admin.register(StockMovement)
 class StockMovementAdmin(admin.ModelAdmin):
@@ -137,15 +147,13 @@ class StockMovementAdmin(admin.ModelAdmin):
     list_filter = ['movement_type', 'created_at']
     search_fields = ['stock_entry__product__name', 'reason', 'performed_by']
     readonly_fields = ['created_at']
-    
+
     def product_name(self, obj):
         return obj.stock_entry.product.name
     product_name.short_description = 'Product'
-    
+
     def has_add_permission(self, request):
-        # Stock movements should be created automatically, not manually
         return False
-    
+
     def has_change_permission(self, request, obj=None):
-        # Stock movements should not be editable for audit trail integrity
         return False

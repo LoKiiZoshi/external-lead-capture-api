@@ -13,6 +13,8 @@ router.register(r'products', ProductViewSet)
 router.register(r'stock-entries', StockEntryViewSet)
 router.register(r'stock-movements', StockMovementViewSet)
 
+
+
 urlpatterns = [
     path('api/v1/', include(router.urls)),
 ]

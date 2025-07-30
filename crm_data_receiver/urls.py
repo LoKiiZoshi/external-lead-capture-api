@@ -24,6 +24,7 @@ urlpatterns = [
     path('inquiries/', receiver_list, name='receiver_list'),
     
     
+    path('', include('stockmanagement.urls')),  
     
     # this api is testing for pratice level in 
     path('api/', include('reports.urls')),

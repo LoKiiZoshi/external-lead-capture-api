@@ -1,6 +1,4 @@
 from django.db import models
-# models.py
-from django.db import models
 from django.core.validators import MinValueValidator
 from decimal import Decimal
 
@@ -12,16 +10,9 @@ class TimestampedModel(models.Model):
     
     class Meta:
         abstract = True
-        
-        
-
-
-#category+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 
 class Category(TimestampedModel):
-    """Product categories for inventory organization"""
-    
     class CategoryStatus(models.TextChoices):
         ACTIVE = 'active', 'Active'
         INACTIVE = 'inactive', 'Inactive'
@@ -29,7 +20,7 @@ class Category(TimestampedModel):
     
     name = models.CharField(max_length=100, unique=True)
     description = models.TextField(blank=True)
-    status = models.CharField(max_length=20,choices=CategoryStatus.choices,default=CategoryStatus.ACTIVE)
+    status = models.CharField(max_length=20, choices=CategoryStatus.choices, default=CategoryStatus.ACTIVE)
     
     class Meta:
         verbose_name_plural = "Categories"
@@ -39,15 +30,7 @@ class Category(TimestampedModel):
         return self.name
 
 
-
-
-#supplier+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
-
-
 class Supplier(TimestampedModel):
-    """Suppliers for inventory products"""
-    
     class SupplierStatus(models.TextChoices):
         ACTIVE = 'active', 'Active'
         INACTIVE = 'inactive', 'Inactive'
@@ -58,7 +41,7 @@ class Supplier(TimestampedModel):
     email = models.EmailField(blank=True)
     phone = models.CharField(max_length=20, blank=True)
     address = models.TextField(blank=True)
-    status = models.CharField(max_length=20,choices=SupplierStatus.choices,default=SupplierStatus.ACTIVE)
+    status = models.CharField(max_length=20, choices=SupplierStatus.choices, default=SupplierStatus.ACTIVE)
     
     class Meta:
         ordering = ['name']
@@ -67,14 +50,7 @@ class Supplier(TimestampedModel):
         return self.name
 
 
-
-
-#Product++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
-
 class Product(TimestampedModel):
-    """Products in the inventory system"""
-    
     class ProductType(models.TextChoices):
         FRESH = 'fresh', 'Fresh Produce'
         FROZEN = 'frozen', 'Frozen'
@@ -107,17 +83,17 @@ class Product(TimestampedModel):
     
     name = models.CharField(max_length=200)
     sku = models.CharField(max_length=50, unique=True, help_text="Stock Keeping Unit")
-    category = models.ForeignKey(Category,on_delete=models.CASCADE,related_name='products')
-    supplier = models.ForeignKey(Supplier,on_delete=models.SET_NULL,null=True,blank=True,related_name='products')
-    product_type = models.CharField(max_length=20,choices=ProductType.choices,default=ProductType.OTHER)
-    unit_of_measure = models.CharField(max_length=20,choices=UnitOfMeasure.choices,default=UnitOfMeasure.PIECE)
-    cost_per_unit = models.DecimalField(max_digits=10, decimal_places=2,validators=[MinValueValidator(Decimal('0.01'))])
-    minimum_stock_level = models.DecimalField(max_digits=10,decimal_places=2,default=0,help_text="Minimum quantity before reorder alert")
-    maximum_stock_level = models.DecimalField(max_digits=10,decimal_places=2,null=True,blank=True,help_text="Maximum storage capacity")
-    shelf_life_days = models.PositiveIntegerField(null=True,blank=True,help_text="Shelf life in days")
+    category = models.ForeignKey(Category, on_delete=models.CASCADE, related_name='products') 
+    supplier = models.ForeignKey(Supplier, on_delete=models.SET_NULL, null=True, blank=True, related_name='products')
+    product_type = models.CharField(max_length=20, choices=ProductType.choices, default=ProductType.OTHER)
+    unit_of_measure = models.CharField(max_length=20, choices=UnitOfMeasure.choices, default=UnitOfMeasure.PIECE)
+    cost_per_unit = models.DecimalField(max_digits=10, decimal_places=2, validators=[MinValueValidator(Decimal('0.01'))])
+    minimum_stock_level = models.DecimalField(max_digits=10, decimal_places=2, default=0, help_text="Minimum quantity before reorder alert")
+    maximum_stock_level = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, help_text="Maximum storage capacity")
+    shelf_life_days = models.PositiveIntegerField(null=True, blank=True, help_text="Shelf life in days")
     storage_instructions = models.TextField(blank=True)
     description = models.TextField(blank=True)
-    status = models.CharField(max_length=20,choices=ProductStatus.choices,default=ProductStatus.ACTIVE)
+    status = models.CharField(max_length=20, choices=ProductStatus.choices, default=ProductStatus.ACTIVE)
     
     class Meta:
         ordering = ['name']
@@ -132,30 +108,21 @@ class Product(TimestampedModel):
     
     @property
     def current_stock(self):
-        """Get current stock quantity"""
         stock_entries = self.stock_entries.filter(status=StockEntry.StockStatus.AVAILABLE)
         return sum(entry.quantity for entry in stock_entries)
     
     @property
     def is_low_stock(self):
-        """Check if current stock is below minimum level"""
         return self.current_stock < self.minimum_stock_level
     
     @property
     def is_overstocked(self):
-        """Check if current stock exceeds maximum level"""
         if self.maximum_stock_level:
             return self.current_stock > self.maximum_stock_level
         return False
 
 
-
-#stockEntry++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
-
 class StockEntry(TimestampedModel):
-    """Individual stock entries for products"""
-    
     class StockStatus(models.TextChoices):
         AVAILABLE = 'available', 'Available'
         RESERVED = 'reserved', 'Reserved'
@@ -171,15 +138,15 @@ class StockEntry(TimestampedModel):
         TRANSFER = 'transfer', 'Transfer'
         WASTE = 'waste', 'Waste/Spoilage'
     
-    product = models.ForeignKey(Product,on_delete=models.CASCADE,related_name='stock_entries')
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='stock_entries')
     batch_number = models.CharField(max_length=100, blank=True)
-    quantity = models.DecimalField(max_digits=10,decimal_places=2,validators=[MinValueValidator(Decimal('0.01'))])
-    entry_type = models.CharField(max_length=20,choices=EntryType.choices,default=EntryType.PURCHASE)
-    status = models.CharField(max_length=20,choices=StockStatus.choices,default=StockStatus.AVAILABLE)
+    quantity = models.DecimalField(max_digits=10, decimal_places=2, validators=[MinValueValidator(Decimal('0.01'))])
+    entry_type = models.CharField(max_length=20, choices=EntryType.choices, default=EntryType.PURCHASE)
+    status = models.CharField(max_length=20, choices=StockStatus.choices, default=StockStatus.AVAILABLE)
     received_date = models.DateTimeField(auto_now_add=True)
     expiry_date = models.DateField(null=True, blank=True)
-    cost_per_unit = models.DecimalField(max_digits=10, decimal_places=2,help_text="Cost per unit for this specific entry")
-    reference_number = models.CharField(max_length=100,blank=True,help_text="Invoice number, PO number, etc.")
+    cost_per_unit = models.DecimalField(max_digits=10, decimal_places=2, help_text="Cost per unit for this specific entry")
+    reference_number = models.CharField(max_length=100, blank=True, help_text="Invoice number, PO number, etc.")
     notes = models.TextField(blank=True)
     
     class Meta:
@@ -196,12 +163,12 @@ class StockEntry(TimestampedModel):
     
     @property
     def total_cost(self):
-        """Calculate total cost for this stock entry"""
+        if self.quantity is None or self.cost_per_unit is None:
+            return Decimal('0.00')
         return self.quantity * self.cost_per_unit
     
     @property
     def is_expired(self):
-        """Check if this stock entry has expired"""
         if self.expiry_date:
             from django.utils import timezone
             return self.expiry_date < timezone.now().date()
@@ -209,7 +176,6 @@ class StockEntry(TimestampedModel):
     
     @property
     def days_until_expiry(self):
-        """Calculate days until expiry"""
         if self.expiry_date:
             from django.utils import timezone
             delta = self.expiry_date - timezone.now().date()
@@ -217,13 +183,7 @@ class StockEntry(TimestampedModel):
         return None
 
 
-#StockMovement++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
-
-
 class StockMovement(TimestampedModel):
-    """Track all stock movements for audit trail"""
-    
     class MovementType(models.TextChoices):
         IN = 'in', 'Stock In'
         OUT = 'out', 'Stock Out'
@@ -231,9 +191,9 @@ class StockMovement(TimestampedModel):
         TRANSFER = 'transfer', 'Transfer'
         WASTE = 'waste', 'Waste'
     
-    stock_entry = models.ForeignKey(StockEntry,on_delete=models.CASCADE,related_name='movements')
-    movement_type = models.CharField(max_length=20,choices=MovementType.choices)
-    quantity_changed = models.DecimalField(max_digits=10,decimal_places=2,help_text="Positive for increases, negative for decreases")
+    stock_entry = models.ForeignKey(StockEntry, on_delete=models.CASCADE, related_name='movements')
+    movement_type = models.CharField(max_length=20, choices=MovementType.choices)
+    quantity_changed = models.DecimalField(max_digits=10, decimal_places=2, help_text="Positive for increases, negative for decreases")
     previous_quantity = models.DecimalField(max_digits=10, decimal_places=2)
     new_quantity = models.DecimalField(max_digits=10, decimal_places=2)
     reason = models.CharField(max_length=200, blank=True)
