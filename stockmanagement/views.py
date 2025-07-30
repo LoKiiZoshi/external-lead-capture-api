@@ -7,7 +7,7 @@ from django.utils import timezone
 from .models import Category, Supplier, Product, StockEntry, StockMovement
 from .serializers import (
     CategorySerializer, SupplierSerializer, ProductListSerializer,
-    ProductDetailSerializer, StockEntrySerializer, StockMovementSerializer
+    ProductDetailSerializer, StockEntrySerializer, StockMovementSerializer,ProductCreateUpdateSerializer
 )
 
 
@@ -45,6 +45,7 @@ class SupplierViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
 
+
 class ProductViewSet(viewsets.ModelViewSet):
     queryset = Product.objects.select_related('category', 'supplier')
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
@@ -56,15 +57,13 @@ class ProductViewSet(viewsets.ModelViewSet):
     def get_serializer_class(self):
         if self.action == 'retrieve':
             return ProductDetailSerializer
+        elif self.action in ['create', 'update', 'partial_update']:
+            return ProductCreateUpdateSerializer
         return ProductListSerializer
     
     @action(detail=False, methods=['get'])
     def low_stock(self, request):
-        """Get products with low stock levels"""
-        products = []
-        for product in self.queryset.filter(status=Product.ProductStatus.ACTIVE):
-            if product.is_low_stock:
-                products.append(product)
+        products = [p for p in self.queryset.filter(status=Product.ProductStatus.ACTIVE) if p.is_low_stock]
         
         page = self.paginate_queryset(products)
         if page is not None:
@@ -76,11 +75,7 @@ class ProductViewSet(viewsets.ModelViewSet):
     
     @action(detail=False, methods=['get'])
     def overstocked(self, request):
-        """Get products that are overstocked"""
-        products = []
-        for product in self.queryset.filter(status=Product.ProductStatus.ACTIVE):
-            if product.is_overstocked:
-                products.append(product)
+        products = [p for p in self.queryset.filter(status=Product.ProductStatus.ACTIVE) if p.is_overstocked]
         
         page = self.paginate_queryset(products)
         if page is not None:
@@ -92,10 +87,9 @@ class ProductViewSet(viewsets.ModelViewSet):
     
     @action(detail=False, methods=['get'])
     def stock_summary(self, request):
-        """Get overall stock summary statistics"""
         total_products = self.queryset.filter(status=Product.ProductStatus.ACTIVE).count()
-        low_stock_count = sum(1 for product in self.queryset.filter(status=Product.ProductStatus.ACTIVE) if product.is_low_stock)
-        overstocked_count = sum(1 for product in self.queryset.filter(status=Product.ProductStatus.ACTIVE) if product.is_overstocked)
+        low_stock_count = sum(1 for p in self.queryset.filter(status=Product.ProductStatus.ACTIVE) if p.is_low_stock)
+        overstocked_count = sum(1 for p in self.queryset.filter(status=Product.ProductStatus.ACTIVE) if p.is_overstocked)
         out_of_stock_count = self.queryset.filter(status=Product.ProductStatus.OUT_OF_STOCK).count()
         
         return Response({
@@ -105,6 +99,10 @@ class ProductViewSet(viewsets.ModelViewSet):
             'out_of_stock_count': out_of_stock_count,
             'healthy_stock_count': total_products - low_stock_count - overstocked_count
         })
+        
+        
+        
+        
 
 
 class StockEntryViewSet(viewsets.ModelViewSet):

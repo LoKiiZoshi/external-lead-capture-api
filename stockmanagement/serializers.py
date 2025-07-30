@@ -76,6 +76,17 @@ class ProductDetailSerializer(serializers.ModelSerializer):
         return StockEntrySerializer(recent_entries, many=True).data
 
 
+class ProductCreateUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Product
+        fields = [
+            'name', 'sku', 'category', 'supplier',
+            'product_type', 'unit_of_measure', 'cost_per_unit',
+            'minimum_stock_level', 'maximum_stock_level', 'shelf_life_days',
+            'storage_instructions', 'description', 'status'
+        ]
+
+
 class StockEntrySerializer(serializers.ModelSerializer):
     product_name = serializers.CharField(source='product.name', read_only=True)
     product_sku = serializers.CharField(source='product.sku', read_only=True)
