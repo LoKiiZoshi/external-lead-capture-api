@@ -39,7 +39,9 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'receiver',
-    'reports', 
+    'reports',
+    'django_filters',
+    'stockmanagement',
 ]
 
 MIDDLEWARE = [
@@ -78,8 +80,12 @@ WSGI_APPLICATION = 'crm_data_receiver.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME':'stock', 
+        'USER':'root',
+        'PASSWORD':"22LOKI",
+        'HOST':'localhost',
+        'PORT':'3306'  
     }
 }
 
@@ -137,6 +143,17 @@ REST_FRAMEWORK = {
         'rest_framework.authentication.BasicAuthentication',
     ],
 }
+
+
+
+
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'  # Or any SMTP server
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = 'lokendarjoshi384@gmail.com'           # Replace with yours
+EMAIL_HOST_PASSWORD = 'zabm ynho ddng nhei'           # Use Gmail app password
+DEFAULT_FROM_EMAIL = 'yourcompany@gmail.com' 
 
 
 
